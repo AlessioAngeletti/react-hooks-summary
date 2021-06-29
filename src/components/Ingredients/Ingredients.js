@@ -7,26 +7,6 @@ import Search from './Search';
 function Ingredients() {
   const [userIngredients, setUserIngredients] = useState([]);
 
-  // useEffect(() => {
-  //   fetch(
-  //     'https://react-http-cb431-default-rtdb.europe-west1.firebasedatabase.app/ingredients.json'
-  //   )
-  //     .then((res) => res.json())
-  //     .then((resData) => {
-  //       const loadedIngredients = [];
-
-  //       for (const key in resData) {
-  //         loadedIngredients.push({
-  //           id: key,
-  //           title: resData[key].title,
-  //           amount: resData[key].amount,
-  //         });
-  //       }
-
-  //       setUserIngredients(loadedIngredients);
-  //     });
-  // }, []);
-
   useEffect(() => {
     console.log('RENDERING INGREDIENTS');
   });
@@ -55,13 +35,29 @@ function Ingredients() {
       });
   };
 
+  const removeIngredientHandler = (ingredientId) => {
+    fetch(
+      `https://react-http-cb431-default-rtdb.europe-west1.firebasedatabase.app/ingredients/${ingredientId}.json`,
+      {
+        method: 'DELETE',
+      }
+    ).then((res) => {
+      setUserIngredients((prevIngredients) =>
+        prevIngredients.filter((ingredient) => ingredient.id !== ingredientId)
+      );
+    });
+  };
+
   return (
     <div className='App'>
       <IngredientForm onAddIngredient={addIngredientHandler} />
 
       <section>
         <Search onLoadIngredients={filteredIngredientsHandler} />
-        <IngredientList ingredients={userIngredients} onRemoveItem={() => {}} />
+        <IngredientList
+          ingredients={userIngredients}
+          onRemoveItem={removeIngredientHandler}
+        />
       </section>
     </div>
   );
