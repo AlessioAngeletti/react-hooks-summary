@@ -1,4 +1,4 @@
-import React, { useReducer, useState, useEffect, useCallback } from 'react';
+import React, { useReducer, useEffect, useCallback } from 'react';
 
 import IngredientForm from './IngredientForm';
 import IngredientList from './IngredientList';
@@ -18,23 +18,39 @@ const ingredientReducer = (currentIngredient, action) => {
   }
 };
 
+const httpReducer = (httpState, action) => {
+  switch (action.type) {
+    case 'SEND':
+      return { ...httpState, loading: true };
+    case 'RESPONSE':
+      return { ...httpState, loading: false };
+    case 'ERROR':
+      return { loading: false, error: action.errorMessage };
+    case 'CLEAR':
+      return { ...httpState, error: null };
+    default:
+      throw new Error('Should not get there');
+  }
+};
+
 function Ingredients() {
-  const [userIngredients, dispatch] = useReducer(ingredientReducer, []);
-  // const [userIngredients, setUserIngredients] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState();
+  const [userState, dispatchUser] = useReducer(ingredientReducer, []);
+  const [httpState, dispatchHttp] = useReducer(httpReducer, {
+    loading: false,
+    error: null,
+  });
 
   useEffect(() => {
     console.log('RENDERING INGREDIENTS');
   });
 
   const filteredIngredientsHandler = useCallback((filteredIngredients) => {
-    // setUserIngredients(filteredIngredients);
-    dispatch({ type: 'SET', ingredients: filteredIngredients });
+    dispatchUser({ type: 'SET', ingredients: filteredIngredients });
   }, []);
 
   const addIngredientHandler = (ingredient) => {
-    setIsLoading(true);
+    dispatchHttp({ type: 'SEND' });
+
     fetch(
       'https://react-http-cb431-default-rtdb.europe-west1.firebasedatabase.app/ingredients.json',
       {
@@ -44,27 +60,23 @@ function Ingredients() {
       }
     )
       .then((res) => {
-        setIsLoading(false);
+        dispatchHttp({ type: 'RESPONSE' });
         return res.json();
       })
       .then((resData) => {
-        // setUserIngredients((prevIngredients) => [
-        //   ...prevIngredients,
-        //   { id: resData.name, ...ingredient },
-        // ]);
-        dispatch({
+        dispatchUser({
           type: 'ADD',
           ingredient: { id: resData.name, ...ingredient },
         });
       })
       .catch((error) => {
-        setError('Something went wrong!');
-        setIsLoading(false);
+        dispatchHttp({ type: 'ERROR', errorMessage: 'omething went wrong!' });
       });
   };
 
   const removeIngredientHandler = (ingredientId) => {
-    setIsLoading(true);
+    dispatchHttp({ type: 'SEND' });
+
     fetch(
       `https://react-http-cb431-default-rtdb.europe-west1.firebasedatabase.app/ingredients/${ingredientId}.json`,
       {
@@ -72,34 +84,32 @@ function Ingredients() {
       }
     )
       .then((res) => {
-        setIsLoading(false);
-        // setUserIngredients((prevIngredients) =>
-        //   prevIngredients.filter((ingredient) => ingredient.id !== ingredientId)
-        // );
-        dispatch({ type: 'DELETE', id: ingredientId });
+        dispatchHttp({ type: 'RESPONSE' });
+        dispatchUser({ type: 'DELETE', id: ingredientId });
       })
       .catch((error) => {
-        setError('Something went wrong!');
-        setIsLoading(false);
+        dispatchHttp({ type: 'ERROR', errorMessage: 'omething went wrong!' });
       });
   };
 
   const clearError = () => {
-    setError(null);
+    dispatchHttp({ type: 'CLEAR' });
   };
 
   return (
     <div className='App'>
-      {error && <ErrorModal onClose={clearError}>{error}</ErrorModal>}
+      {httpState.error && (
+        <ErrorModal onClose={clearError}>{httpState.error}</ErrorModal>
+      )}
       <IngredientForm
         onAddIngredient={addIngredientHandler}
-        loading={isLoading}
+        loading={httpState.loading}
       />
 
       <section>
         <Search onLoadIngredients={filteredIngredientsHandler} />
         <IngredientList
-          ingredients={userIngredients}
+          ingredients={userState}
           onRemoveItem={removeIngredientHandler}
         />
       </section>
