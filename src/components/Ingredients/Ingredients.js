@@ -21,54 +21,52 @@ const ingredientReducer = (currentIngredient, action) => {
 
 function Ingredients() {
   const [userState, dispatchUser] = useReducer(ingredientReducer, []);
-  const { isLoading, error, data, sendRequest } = useHttp();
+  const {
+    isLoading,
+    error,
+    data,
+    reqExtra,
+    reqIdentifier,
+    sendRequest,
+    clear,
+  } = useHttp();
 
   useEffect(() => {
-    console.log('RENDERING INGREDIENTS');
-  });
+    if (!isLoading && !error && reqIdentifier === 'REMOVE_INGREDIENT')
+      dispatchUser({ type: 'DELETE', id: reqExtra });
+    else if (!isLoading && !error && reqIdentifier === 'ADD_INGREDIENT')
+      dispatchUser({ type: 'ADD', ingredient: { id: data.name, ...reqExtra } });
+  }, [data, reqExtra, reqIdentifier, isLoading, error]);
 
   const filteredIngredientsHandler = useCallback((filteredIngredients) => {
     dispatchUser({ type: 'SET', ingredients: filteredIngredients });
   }, []);
 
-  const addIngredientHandler = useCallback((ingredient) => {
-    // dispatchHttp({ type: 'SEND' });
-    // fetch(
-    //   'https://react-http-cb431-default-rtdb.europe-west1.firebasedatabase.app/ingredients.json',
-    //   {
-    //     method: 'POST',
-    //     body: JSON.stringify(ingredient),
-    //     headers: { 'Content-Type': 'application/json' },
-    //   }
-    // )
-    //   .then((res) => {
-    //     dispatchHttp({ type: 'RESPONSE' });
-    //     return res.json();
-    //   })
-    //   .then((resData) => {
-    //     dispatchUser({
-    //       type: 'ADD',
-    //       ingredient: { id: resData.name, ...ingredient },
-    //     });
-    //   })
-    //   .catch((error) => {
-    //     dispatchHttp({ type: 'ERROR', errorMessage: 'omething went wrong!' });
-    //   });
-  }, []);
-
-  const removeIngredientHandler = useCallback(
-    (ingredientId) => {
+  const addIngredientHandler = useCallback(
+    (ingredient) => {
       sendRequest(
-        `https://react-http-cb431-default-rtdb.europe-west1.firebasedatabase.app/ingredients/${ingredientId}.json`,
-        'DELETE'
+        'https://react-http-cb431-default-rtdb.europe-west1.firebasedatabase.app/ingredients.json',
+        'POST',
+        JSON.stringify(ingredient),
+        ingredient,
+        'ADD_INGREDIENT'
       );
     },
     [sendRequest]
   );
 
-  const clearError = useCallback(() => {
-    // dispatchHttp({ type: 'CLEAR' });
-  }, []);
+  const removeIngredientHandler = useCallback(
+    (ingredientId) => {
+      sendRequest(
+        `https://react-http-cb431-default-rtdb.europe-west1.firebasedatabase.app/ingredients/${ingredientId}.json`,
+        'DELETE',
+        null,
+        ingredientId,
+        'REMOVE_INGREDIENT'
+      );
+    },
+    [sendRequest]
+  );
 
   const ingredientList = useMemo(() => {
     return (
@@ -81,7 +79,7 @@ function Ingredients() {
 
   return (
     <div className='App'>
-      {error && <ErrorModal onClose={clearError}>{error}</ErrorModal>}
+      {error && <ErrorModal onClose={clear}>{error}</ErrorModal>}
       <IngredientForm
         onAddIngredient={addIngredientHandler}
         loading={isLoading}
